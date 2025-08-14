@@ -1,0 +1,438 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>JSON Editor</title>
+  <style>
+    /* Основные стили */
+    body {
+      font-family: 'Montserrat', sans-serif;
+      background-color: #1e1e1e;
+      color: #a6a6a6;
+      margin: 0;
+      padding: 0;
+      height: 100vh;
+      box-sizing: border-box;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+    }
+
+    /* Стили аутентификации */
+    .auth-container {
+      background: rgba(40, 40, 40, 0.9);
+      padding: 30px;
+      border-radius: 8px;
+      box-shadow: 0 0 20px rgba(0,0,0,0.5);
+      width: 300px;
+      text-align: center;
+    }
+
+    .auth-container h1 {
+      margin-top: 0;
+      color: #03A64A;
+    }
+
+    .auth-input,
+    .auth-button {
+      height: 40px; /* одинаковая высота */
+      font-size: 14px;
+      box-sizing: border-box; /* чтобы padding не увеличивал размер */
+    }
+
+    .auth-button {
+      width: 100%;
+      background: #03A64A;
+      color: white;
+      border: none;
+      border-radius: 4px;
+      cursor: pointer;
+      font-weight: 600;
+      margin-top: 10px;
+    }
+
+    .auth-button:hover {
+      background: #028a3d;
+    }
+    /* Контейнер редактора (изначально скрыт) */
+    .json-editor-container {
+      display: none;
+      max-width: 900px;
+      width: 100%;
+      height: 100vh;
+      padding: 20px;
+      box-sizing: border-box;
+      flex-direction: column;
+    }
+
+    /* Улучшенный скролл */
+    ::-webkit-scrollbar {
+      width: 10px;
+      height: 10px;
+    }
+
+    ::-webkit-scrollbar-track {
+      background: rgba(30, 30, 30, 0.5);
+    }
+
+    ::-webkit-scrollbar-thumb {
+      background: #03A64A;
+      border-radius: 5px;
+    }
+
+    ::-webkit-scrollbar-thumb:hover {
+      background: #028a3d;
+    }
+
+    /* Остальные стили */
+    h1, h2, h3 {
+      color: #a6a6a6;
+      margin: 0 0 15px 0;
+    }
+
+    h1 {
+      font-size: 24px;
+      font-weight: 800;
+      border-bottom: 1px solid #444;
+      padding-bottom: 10px;
+    }
+
+    h2 {
+      font-size: 20px;
+      font-weight: 600;
+    }
+
+    h3 {
+      font-size: 16px;
+      font-weight: 600;
+      margin: 20px 0 10px 0;
+    }
+
+    input, select {
+      width: 100%;
+      padding: 8px 12px;
+      margin: 6px 0;
+      background: rgba(40, 40, 40, 0.9);
+      color: #a6a6a6;
+      border: 1px solid #444;
+      border-radius: 4px;
+      font-size: 14px;
+    }
+
+    button {
+      padding: 8px 12px;
+      margin: 8px 0;
+      background: rgba(40, 40, 40, 0.9);
+      color: #a6a6a6;
+      border: 1px solid #444;
+      border-radius: 4px;
+      font-size: 14px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.2s ease;
+    }
+
+    button:hover {
+      background: rgba(60, 60, 60, 0.9);
+      color: #03A64A;
+      border-color: #03A64A;
+    }
+
+    button.primary {
+      background: #03A64A;
+      color: white;
+      border-color: #03A64A;
+    }
+
+    button.danger {
+      background: rgba(200, 60, 60, 0.8);
+      color: white;
+      border-color: transparent;
+    }
+
+    #sampleList {
+      background: rgba(46, 46, 46, 0.8);
+      padding: 15px;
+      border-radius: 4px;
+      margin: 15px 0;
+      flex-grow: 1;
+      overflow-y: auto;
+      max-height: 400px;
+    }
+
+    .sample {
+      background: rgba(60, 60, 60, 0.8);
+      padding: 12px;
+      margin: 8px 0;
+      border-radius: 4px;
+      border-left: 3px solid #03A64A;
+    }
+
+    .action-panel {
+      display: flex;
+      gap: 10px;
+      margin-top: 20px;
+    }
+
+    #console-output {
+      height: 100px;
+      overflow-y: auto;
+      background: rgba(30, 30, 30, 0.9);
+      border: 1px solid #444;
+      border-radius: 4px;
+      padding: 10px;
+      margin-top: 10px;
+      font-family: monospace;
+      font-size: 12px;
+    }
+  </style>
+</head>
+<body>
+  <!-- Форма аутентификации -->
+  <div id="auth-container" class="auth-container">
+    <h1>JSON Editor</h1>
+    <input type="text" id="login" class="auth-input" placeholder="Логин">
+    <input type="password" id="password" class="auth-input" placeholder="Пароль">
+    <button id="login-button" class="auth-button">Войти</button>
+    <div id="auth-error" style="color: #ff4444; margin-top: 10px; display: none;">
+      Неверный логин или пароль
+    </div>
+  </div>
+
+  <!-- Основной интерфейс редактора -->
+  <div id="json-editor-container" class="json-editor-container">
+    <h1>JSON Editor</h1>
+    
+    <div class="editor-section">
+      <h2>Форматы</h2>
+      <select id="formatSelect"></select>
+      <input type="text" id="newFormat" placeholder="Новый формат">
+      <button onclick="addFormat()">Добавить формат</button>
+    </div>
+    
+    <div class="editor-section">
+      <h2>Добавить сэмпл</h2>
+      <input type="text" id="name" placeholder="Название">
+      <input type="text" id="idSample" placeholder="ID сэмпла">
+      <input type="text" id="path" placeholder="Путь">
+      <button onclick="addSample()">Добавить сэмпл</button>
+    </div>
+    
+    <div class="editor-section">
+      <h2>Список сэмплов</h2>
+      <div id="sampleList"></div>
+    </div>
+    
+    <div class="action-panel">
+      <button class="primary" onclick="downloadJSON()">Сохранить JSON</button>
+      <input type="file" id="jsonFileInput" style="display: none;" onchange="loadLocalJSON(event)">
+      <button onclick="document.getElementById('jsonFileInput').click()">Загрузить JSON</button>
+      <button onclick="logout()">Выйти</button>
+    </div>
+    
+    <!-- <div id="console-output"></div> -->
+  </div>
+
+  <script>
+    // Глобальные переменные
+    var jsonData = jsonData || { menuItems: [] };
+    var jsonFilePath = "";
+    const ADMIN_CREDENTIALS = { login: 'admin', password: 'admin' };
+
+
+    // Аутентификация
+    function authenticate() {
+      const login = document.getElementById('login').value.trim();
+      const password = document.getElementById('password').value.trim();
+      const errorElement = document.getElementById('auth-error');
+      
+      if (login === ADMIN_CREDENTIALS.login && password === ADMIN_CREDENTIALS.password) {
+        document.getElementById('auth-container').style.display = 'none';
+        document.getElementById('json-editor-container').style.display = 'flex';
+        
+        // Инициализация редактора после входа
+        updateFormatSelect();
+        renderSamples();
+      } else {
+        errorElement.style.display = 'block';
+      }
+    }
+
+    // Выход из системы
+    function logout() {
+      document.getElementById('auth-container').style.display = 'block';
+      document.getElementById('json-editor-container').style.display = 'none';
+      document.getElementById('login').value = '';
+      document.getElementById('password').value = '';
+      document.getElementById('auth-error').style.display = 'none';
+    }
+
+    // Обновление списка форматов
+    function updateFormatSelect() {
+      var select = document.getElementById("formatSelect");
+      if (!select) return;
+      
+      select.innerHTML = "";
+      jsonData.menuItems.forEach((item, index) => {
+        var option = document.createElement("option");
+        option.value = index;
+        option.textContent = item.idFormat;
+        select.appendChild(option);
+      });
+    }
+
+    // Рендер списка сэмплов
+    function renderSamples() {
+      var list = document.getElementById("sampleList");
+      if (!list) return;
+      
+      list.innerHTML = "";
+      jsonData.menuItems.forEach((format, i) => {
+        var formatHeader = document.createElement("h3");
+        formatHeader.textContent = format.idFormat;
+        list.appendChild(formatHeader);
+        format.item.forEach((sample, j) => {
+          var div = document.createElement("div");
+          div.className = "sample";
+          div.innerHTML = `
+            <strong>${sample.name}</strong> (ID: ${sample.idSample})<br>
+            Путь: ${sample.path} 
+            <button class="danger" onclick="deleteSample(${i}, ${j})">Удалить</button>
+          `;
+          list.appendChild(div);
+        });
+      });
+    }
+
+    // Добавление нового формата
+    function addFormat() {
+      var newFormat = document.getElementById("newFormat").value.trim();
+      if (newFormat) {
+        jsonData.menuItems.push({ idFormat: newFormat, item: [] });
+        updateFormatSelect();
+        document.getElementById("newFormat").value = "";
+      } else {
+        alert("Название формата не может быть пустым!");
+      }
+    }
+
+    // Добавление сэмпла
+    function addSample() {
+      var name = document.getElementById("name").value.trim();
+      var idSample = document.getElementById("idSample").value.trim();
+      var path = document.getElementById("path").value.trim();
+      var formatIndex = document.getElementById("formatSelect").value;
+
+      if (name && idSample && path && formatIndex !== "") {
+        jsonData.menuItems[formatIndex].item.push({ name, idSample, path });
+        renderSamples();
+        document.getElementById("name").value = "";
+        document.getElementById("idSample").value = "";
+        document.getElementById("path").value = "";
+      } else {
+        alert("Заполните все поля!");
+      }
+    }
+
+    // Удаление сэмпла
+    function deleteSample(formatIndex, sampleIndex) {
+      if (confirm("Вы уверены, что хотите удалить этот сэмпл?")) {
+        jsonData.menuItems[formatIndex].item.splice(sampleIndex, 1);
+        renderSamples();
+      }
+    }
+
+    // Сохранение JSON
+    function downloadJSON() {
+      if (!jsonFilePath) {
+        jsonFilePath = prompt("Введите путь для сохранения файла:", "samples.json");
+        if (!jsonFilePath) return;
+      }
+      
+      var jsonStr = JSON.stringify(jsonData, null, 4);
+      try {
+        const csInterface = new CSInterface();
+        csInterface.evalScript(
+          `saveJsonToFile(${JSON.stringify(jsonStr)}, ${JSON.stringify(jsonFilePath)})`,
+          function(result) {
+            if (result === "OK") {
+              alert('JSON успешно сохранен');
+            } else {
+              alert('Ошибка сохранения JSON: ' + result);
+            }
+          }
+        );
+      } catch (e) {
+        // Fallback для отладки в браузере
+        const blob = new Blob([jsonStr], { type: 'application/json' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = jsonFilePath.split('/').pop() || 'samples.json';
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+      }
+    }
+
+    // Загрузка локального JSON
+    function loadLocalJSON(event) {
+      var file = event.target.files[0];
+      if (file) {
+        jsonFilePath = file.path || "";
+        var reader = new FileReader();
+        reader.onload = function(e) {
+          try {
+            jsonData = JSON.parse(e.target.result);
+            updateFormatSelect();
+            renderSamples();
+          } catch (error) {
+            alert("Ошибка при чтении файла: неверный формат JSON");
+          }
+        };
+        reader.onerror = function() {
+          alert("Ошибка при чтении файла");
+        };
+        reader.readAsText(file);
+      }
+    }
+
+    // Функция для сохранения файла (для ExtendScript)
+    function saveJsonToFile(jsonString, filePath) {
+      try {
+        var file = new File(filePath);
+        if (file.open("w")) {
+          file.write(jsonString);
+          file.close();
+          return "OK";
+        } else {
+          return "Cannot open file";
+        }
+      } catch (e) {
+        return "Error: " + e.toString();
+      }
+    }
+
+    // Инициализация при загрузке
+    document.addEventListener("DOMContentLoaded", function() {
+      
+      // Обработчик кнопки входа
+      document.getElementById('login-button').addEventListener('click', authenticate);
+      
+      // Обработчик нажатия Enter в полях ввода
+      document.getElementById('password').addEventListener('keypress', function(e) {
+        if (e.key === 'Enter') {
+          authenticate();
+        }
+      });
+      
+      // Проверяем, есть ли переданные данные
+      if (window.opener && window.opener.jsonData) {
+        jsonData = window.opener.jsonData;
+      }
+    });
+  </script>
+</body>
+</html>
