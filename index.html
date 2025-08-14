@@ -346,7 +346,7 @@
     // Сохранение JSON
     function downloadJSON() {
       if (!jsonFilePath) {
-        jsonFilePath = prompt("Введите путь для сохранения файла:", "samples.json");
+        jsonFilePath = prompt("Введите путь для сохранения файла:", "sampleData.json");
         if (!jsonFilePath) return;
       }
       
@@ -369,7 +369,7 @@
         const url = URL.createObjectURL(blob);
         const a = document.createElement('a');
         a.href = url;
-        a.download = jsonFilePath.split('/').pop() || 'samples.json';
+        a.download = jsonFilePath.split('/').pop() || 'sampleData.json';
         document.body.appendChild(a);
         a.click();
         document.body.removeChild(a);
