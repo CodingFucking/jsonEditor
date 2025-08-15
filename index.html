@@ -1,438 +1,872 @@
 <!DOCTYPE html>
-<html lang="en">
-<head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>JSON Editor</title>
-  <style>
-    /* Основные стили */
-    body {
-      font-family: 'Montserrat', sans-serif;
-      background-color: #1e1e1e;
-      color: #a6a6a6;
-      margin: 0;
-      padding: 0;
-      height: 100vh;
-      box-sizing: border-box;
-      display: flex;
-      justify-content: center;
-      align-items: center;
-    }
-
-    /* Стили аутентификации */
-    .auth-container {
-      background: rgba(40, 40, 40, 0.9);
-      padding: 30px;
-      border-radius: 8px;
-      box-shadow: 0 0 20px rgba(0,0,0,0.5);
-      width: 300px;
-      text-align: center;
-    }
-
-    .auth-container h1 {
-      margin-top: 0;
-      color: #03A64A;
-    }
-
-    .auth-input,
-    .auth-button {
-      height: 40px; /* одинаковая высота */
-      font-size: 14px;
-      box-sizing: border-box; /* чтобы padding не увеличивал размер */
-    }
-
-    .auth-button {
-      width: 100%;
-      background: #03A64A;
-      color: white;
-      border: none;
-      border-radius: 4px;
-      cursor: pointer;
-      font-weight: 600;
-      margin-top: 10px;
-    }
-
-    .auth-button:hover {
-      background: #028a3d;
-    }
-    /* Контейнер редактора (изначально скрыт) */
-    .json-editor-container {
-      display: none;
-      max-width: 900px;
-      width: 100%;
-      height: 100vh;
-      padding: 20px;
-      box-sizing: border-box;
-      flex-direction: column;
-    }
-
-    /* Улучшенный скролл */
-    ::-webkit-scrollbar {
-      width: 10px;
-      height: 10px;
-    }
-
-    ::-webkit-scrollbar-track {
-      background: rgba(30, 30, 30, 0.5);
-    }
-
-    ::-webkit-scrollbar-thumb {
-      background: #03A64A;
-      border-radius: 5px;
-    }
-
-    ::-webkit-scrollbar-thumb:hover {
-      background: #028a3d;
-    }
-
-    /* Остальные стили */
-    h1, h2, h3 {
-      color: #a6a6a6;
-      margin: 0 0 15px 0;
-    }
-
-    h1 {
-      font-size: 24px;
-      font-weight: 800;
-      border-bottom: 1px solid #444;
-      padding-bottom: 10px;
-    }
-
-    h2 {
-      font-size: 20px;
-      font-weight: 600;
-    }
-
-    h3 {
-      font-size: 16px;
-      font-weight: 600;
-      margin: 20px 0 10px 0;
-    }
-
-    input, select {
-      width: 100%;
-      padding: 8px 12px;
-      margin: 6px 0;
-      background: rgba(40, 40, 40, 0.9);
-      color: #a6a6a6;
-      border: 1px solid #444;
-      border-radius: 4px;
-      font-size: 14px;
-    }
-
-    button {
-      padding: 8px 12px;
-      margin: 8px 0;
-      background: rgba(40, 40, 40, 0.9);
-      color: #a6a6a6;
-      border: 1px solid #444;
-      border-radius: 4px;
-      font-size: 14px;
-      font-weight: 600;
-      cursor: pointer;
-      transition: all 0.2s ease;
-    }
-
-    button:hover {
-      background: rgba(60, 60, 60, 0.9);
-      color: #03A64A;
-      border-color: #03A64A;
-    }
-
-    button.primary {
-      background: #03A64A;
-      color: white;
-      border-color: #03A64A;
-    }
-
-    button.danger {
-      background: rgba(200, 60, 60, 0.8);
-      color: white;
-      border-color: transparent;
-    }
-
-    #sampleList {
-      background: rgba(46, 46, 46, 0.8);
-      padding: 15px;
-      border-radius: 4px;
-      margin: 15px 0;
-      flex-grow: 1;
-      overflow-y: auto;
-      max-height: 400px;
-    }
-
-    .sample {
-      background: rgba(60, 60, 60, 0.8);
-      padding: 12px;
-      margin: 8px 0;
-      border-radius: 4px;
-      border-left: 3px solid #03A64A;
-    }
-
-    .action-panel {
-      display: flex;
-      gap: 10px;
-      margin-top: 20px;
-    }
-
-    #console-output {
-      height: 100px;
-      overflow-y: auto;
-      background: rgba(30, 30, 30, 0.9);
-      border: 1px solid #444;
-      border-radius: 4px;
-      padding: 10px;
-      margin-top: 10px;
-      font-family: monospace;
-      font-size: 12px;
-    }
-  </style>
-</head>
-<body>
-  <!-- Форма аутентификации -->
-  <div id="auth-container" class="auth-container">
-    <h1>JSON Editor</h1>
-    <input type="text" id="login" class="auth-input" placeholder="Логин">
-    <input type="password" id="password" class="auth-input" placeholder="Пароль">
-    <button id="login-button" class="auth-button">Войти</button>
-    <div id="auth-error" style="color: #ff4444; margin-top: 10px; display: none;">
-      Неверный логин или пароль
-    </div>
-  </div>
-
-  <!-- Основной интерфейс редактора -->
-  <div id="json-editor-container" class="json-editor-container">
-    <h1>JSON Editor</h1>
-    
-    <div class="editor-section">
-      <h2>Форматы</h2>
-      <select id="formatSelect"></select>
-      <input type="text" id="newFormat" placeholder="Новый формат">
-      <button onclick="addFormat()">Добавить формат</button>
-    </div>
-    
-    <div class="editor-section">
-      <h2>Добавить сэмпл</h2>
-      <input type="text" id="name" placeholder="Название">
-      <input type="text" id="idSample" placeholder="ID сэмпла">
-      <input type="text" id="path" placeholder="Путь">
-      <button onclick="addSample()">Добавить сэмпл</button>
-    </div>
-    
-    <div class="editor-section">
-      <h2>Список сэмплов</h2>
-      <div id="sampleList"></div>
-    </div>
-    
-    <div class="action-panel">
-      <button class="primary" onclick="downloadJSON()">Сохранить JSON</button>
-      <input type="file" id="jsonFileInput" style="display: none;" onchange="loadLocalJSON(event)">
-      <button onclick="document.getElementById('jsonFileInput').click()">Загрузить JSON</button>
-      <button onclick="logout()">Выйти</button>
-    </div>
-    
-    <!-- <div id="console-output"></div> -->
-  </div>
-
-  <script>
-    // Глобальные переменные
-    var jsonData = jsonData || { menuItems: [] };
-    var jsonFilePath = "";
-    const ADMIN_CREDENTIALS = { login: 'admin', password: 'admin' };
-
-
-    // Аутентификация
-    function authenticate() {
-      const login = document.getElementById('login').value.trim();
-      const password = document.getElementById('password').value.trim();
-      const errorElement = document.getElementById('auth-error');
-      
-      if (login === ADMIN_CREDENTIALS.login && password === ADMIN_CREDENTIALS.password) {
-        document.getElementById('auth-container').style.display = 'none';
-        document.getElementById('json-editor-container').style.display = 'flex';
-        
-        // Инициализация редактора после входа
-        updateFormatSelect();
-        renderSamples();
-      } else {
-        errorElement.style.display = 'block';
-      }
-    }
-
-    // Выход из системы
-    function logout() {
-      document.getElementById('auth-container').style.display = 'block';
-      document.getElementById('json-editor-container').style.display = 'none';
-      document.getElementById('login').value = '';
-      document.getElementById('password').value = '';
-      document.getElementById('auth-error').style.display = 'none';
-    }
-
-    // Обновление списка форматов
-    function updateFormatSelect() {
-      var select = document.getElementById("formatSelect");
-      if (!select) return;
-      
-      select.innerHTML = "";
-      jsonData.menuItems.forEach((item, index) => {
-        var option = document.createElement("option");
-        option.value = index;
-        option.textContent = item.idFormat;
-        select.appendChild(option);
-      });
-    }
-
-    // Рендер списка сэмплов
-    function renderSamples() {
-      var list = document.getElementById("sampleList");
-      if (!list) return;
-      
-      list.innerHTML = "";
-      jsonData.menuItems.forEach((format, i) => {
-        var formatHeader = document.createElement("h3");
-        formatHeader.textContent = format.idFormat;
-        list.appendChild(formatHeader);
-        format.item.forEach((sample, j) => {
-          var div = document.createElement("div");
-          div.className = "sample";
-          div.innerHTML = `
-            <strong>${sample.name}</strong> (ID: ${sample.idSample})<br>
-            Путь: ${sample.path} 
-            <button class="danger" onclick="deleteSample(${i}, ${j})">Удалить</button>
-          `;
-          list.appendChild(div);
-        });
-      });
-    }
-
-    // Добавление нового формата
-    function addFormat() {
-      var newFormat = document.getElementById("newFormat").value.trim();
-      if (newFormat) {
-        jsonData.menuItems.push({ idFormat: newFormat, item: [] });
-        updateFormatSelect();
-        document.getElementById("newFormat").value = "";
-      } else {
-        alert("Название формата не может быть пустым!");
-      }
-    }
-
-    // Добавление сэмпла
-    function addSample() {
-      var name = document.getElementById("name").value.trim();
-      var idSample = document.getElementById("idSample").value.trim();
-      var path = document.getElementById("path").value.trim();
-      var formatIndex = document.getElementById("formatSelect").value;
-
-      if (name && idSample && path && formatIndex !== "") {
-        jsonData.menuItems[formatIndex].item.push({ name, idSample, path });
-        renderSamples();
-        document.getElementById("name").value = "";
-        document.getElementById("idSample").value = "";
-        document.getElementById("path").value = "";
-      } else {
-        alert("Заполните все поля!");
-      }
-    }
-
-    // Удаление сэмпла
-    function deleteSample(formatIndex, sampleIndex) {
-      if (confirm("Вы уверены, что хотите удалить этот сэмпл?")) {
-        jsonData.menuItems[formatIndex].item.splice(sampleIndex, 1);
-        renderSamples();
-      }
-    }
-
-    // Сохранение JSON
-    function downloadJSON() {
-      if (!jsonFilePath) {
-        jsonFilePath = prompt("Введите путь для сохранения файла:", "sampleData.json");
-        if (!jsonFilePath) return;
-      }
-      
-      var jsonStr = JSON.stringify(jsonData, null, 4);
-      try {
-        const csInterface = new CSInterface();
-        csInterface.evalScript(
-          `saveJsonToFile(${JSON.stringify(jsonStr)}, ${JSON.stringify(jsonFilePath)})`,
-          function(result) {
-            if (result === "OK") {
-              alert('JSON успешно сохранен');
-            } else {
-              alert('Ошибка сохранения JSON: ' + result);
-            }
-          }
-        );
-      } catch (e) {
-        // Fallback для отладки в браузере
-        const blob = new Blob([jsonStr], { type: 'application/json' });
-        const url = URL.createObjectURL(blob);
-        const a = document.createElement('a');
-        a.href = url;
-        a.download = jsonFilePath.split('/').pop() || 'sampleData.json';
-        document.body.appendChild(a);
-        a.click();
-        document.body.removeChild(a);
-        URL.revokeObjectURL(url);
-      }
-    }
-
-    // Загрузка локального JSON
-    function loadLocalJSON(event) {
-      var file = event.target.files[0];
-      if (file) {
-        jsonFilePath = file.path || "";
-        var reader = new FileReader();
-        reader.onload = function(e) {
-          try {
-            jsonData = JSON.parse(e.target.result);
-            updateFormatSelect();
-            renderSamples();
-          } catch (error) {
-            alert("Ошибка при чтении файла: неверный формат JSON");
-          }
-        };
-        reader.onerror = function() {
-          alert("Ошибка при чтении файла");
-        };
-        reader.readAsText(file);
-      }
-    }
-
-    // Функция для сохранения файла (для ExtendScript)
-    function saveJsonToFile(jsonString, filePath) {
-      try {
-        var file = new File(filePath);
-        if (file.open("w")) {
-          file.write(jsonString);
-          file.close();
-          return "OK";
-        } else {
-          return "Cannot open file";
-        }
-      } catch (e) {
-        return "Error: " + e.toString();
-      }
-    }
-
-    // Инициализация при загрузке
-    document.addEventListener("DOMContentLoaded", function() {
-      
-      // Обработчик кнопки входа
-      document.getElementById('login-button').addEventListener('click', authenticate);
-      
-      // Обработчик нажатия Enter в полях ввода
-      document.getElementById('password').addEventListener('keypress', function(e) {
-        if (e.key === 'Enter') {
-          authenticate();
-        }
-      });
-      
-      // Проверяем, есть ли переданные данные
-      if (window.opener && window.opener.jsonData) {
-        jsonData = window.opener.jsonData;
-      }
-    });
-  </script>
-</body>
+<html lang="ru">
+   <head>
+      <meta charset="UTF-8">
+      <meta name="viewport" content="width=device-width, initial-scale=1.0">
+      <title>Редактор списка путей семплов</title>
+      <style>
+         body {
+         font-family: 'Montserrat', sans-serif;
+         background-color: #1e1e1e;
+         color: #a6a6a6;
+         margin: 0;
+         padding: 0;
+         height: 100vh;
+         box-sizing: border-box;
+         display: flex;
+         justify-content: center;
+         align-items: center;
+         }
+         .auth-container {
+         background: rgba(40, 40, 40, 0.9);
+         padding: 30px;
+         border-radius: 8px;
+         box-shadow: 0 0 20px rgba(0,0,0,0.5);
+         width: 300px;
+         text-align: center;
+         }
+         .auth-container h1 {
+         margin-top: 0;
+         color: #03A64A;
+         }
+         .auth-input,
+         .auth-button {
+         height: 40px;
+         font-size: 14px;
+         box-sizing: border-box;
+         }
+         .auth-input {
+         width: 100%;
+         margin-bottom: 10px;
+         }
+         .auth-button {
+         width: 100%;
+         background: #03A64A;
+         color: white;
+         border: none;
+         border-radius: 4px;
+         cursor: pointer;
+         font-weight: 600;
+         margin-top: 10px;
+         }
+         .auth-button:hover {
+         background: #028a3d;
+         }
+         .json-editor-container {
+         display: none;
+         max-width: 900px;
+         width: 100%;
+         height: 100vh;
+         padding: 20px;
+         box-sizing: border-box;
+         flex-direction: column;
+         }
+         ::-webkit-scrollbar {
+         width: 10px;
+         height: 10px;
+         }
+         ::-webkit-scrollbar-track {
+         background: rgba(30, 30, 30, 0.5);
+         }
+         ::-webkit-scrollbar-thumb {
+         background: #03A64A;
+         border-radius: 5px;
+         }
+         ::-webkit-scrollbar-thumb:hover {
+         background: #028a3d;
+         }
+         h1, h2, h3 {
+         color: #a6a6a6;
+         }
+         h1 {
+         font-size: 24px;
+         font-weight: 800;
+         border-bottom: 1px solid #444;
+         padding-bottom: 10px;
+         }
+         h2 {
+         font-size: 20px;
+         font-weight: 600;
+         margin: 5px 0 0 0;
+         }
+         h3 {
+         font-size: 16px;
+         font-weight: 600;
+         margin: 0 0 5px 0;
+         display: flex;
+         align-items: center;
+         cursor: pointer;
+         padding: 8px 12px;
+         background: rgba(50,50,50,0.8);
+         border-radius: 4px;
+         user-select: none;
+         }
+         input, select, button {
+         padding: 8px 12px;
+         margin: 6px 0;
+         background: rgba(40, 40, 40, 0.9);
+         color: #a6a6a6;
+         border: 1px solid #444;
+         border-radius: 4px;
+         font-size: 14px;
+         box-sizing: border-box;
+         }
+         select {
+         width: 100%;
+         }
+         #path {
+         width: 100%;
+         box-sizing: border-box;
+         }
+         button:hover {
+         background: rgba(60, 60, 60, 0.9);
+         color: #03A64A;
+         border-color: #03A64A;
+         }
+         button.primary {
+         background: #03A64A;
+         color: white;
+         border-color: #03A64A;
+         }
+         button.danger {
+         background: rgba(200, 60, 60, 0.8);
+         color: white;
+         border-color: transparent;
+         }
+         #sampleList {
+         background: rgba(46, 46, 46, 0.8);
+         padding: 15px;
+         border-radius: 4px;
+         margin: 15px 0;
+         flex-grow: 1;
+         overflow-y: auto;
+         max-height: 400px;
+         }
+         .sample {
+         position: relative;
+         background: rgba(60, 60, 60, 0.8);
+         padding: 12px;
+         margin: 8px 0;
+         border-radius: 4px;
+         border-left: 3px solid #03A64A;
+         cursor: grab;
+         }
+         .sample-buttons {
+         position: absolute;
+         top: 5px;
+         right: 5px;
+         display: flex;
+         gap: 5px;
+         }
+         .sample-buttons button {
+         padding: 3px 6px;
+         font-size: 12px;
+         }
+         .format-buttons {
+         margin-left: auto;
+         display: flex;
+         gap: 5px;
+         }
+         .format-buttons button {
+         padding: 3px 6px;
+         font-size: 12px;
+         }
+         .action-panel {
+         display: flex;
+         gap: 10px;
+         margin-top: 20px;
+         }
+         .input-row {
+         display: flex;
+         gap: 10px;
+         align-items: center;
+         margin-bottom: 20px;
+         }
+         .input-row input {
+         flex: 1;
+         }
+         .input-row button {
+         flex-shrink: 0;
+         width: 150px;
+         white-space: nowrap;
+         }
+         .alert-overlay {
+         position: fixed;
+         top: 0;
+         left: 0;
+         right: 0;
+         bottom: 0;
+         background: rgba(0,0,0,0.7);
+         display: flex;
+         justify-content: center;
+         align-items: center;
+         z-index: 1000;
+         }
+         .alert-box {
+         background: rgba(50,50,50,0.95);
+         padding: 20px;
+         border-radius: 8px;
+         max-width: 400px;
+         width: 90%;
+         box-shadow: 0 0 20px rgba(0,0,0,0.5);
+         border-top: 3px solid #03A64A;
+         }
+         .edit-box {
+         max-width: 500px;
+         }
+         .alert-title {
+         color: #03A64A;
+         font-size: 18px;
+         margin-top: 0;
+         margin-bottom: 15px;
+         }
+         .alert-message {
+         margin-bottom: 20px;
+         }
+         .alert-buttons {
+         display: flex;
+         justify-content: flex-end;
+         gap: 10px;
+         }
+         .alert-button {
+         padding: 8px 15px;
+         border: none;
+         border-radius: 4px;
+         cursor: pointer;
+         }
+         .alert-button.confirm {
+         background: #03A64A;
+         color: white;
+         }
+         .alert-button.cancel {
+         background: rgba(70,70,70,0.9);
+         color: #a6a6a6;
+         }
+         .input-error {
+         border-color: #ff4444 !important;
+         animation: shake 0.5s;
+         }
+         .edit-input {
+         width: 100%;
+         margin-bottom: 15px;
+         }
+         .edit-label {
+         display: block;
+         margin-bottom: 5px;
+         color: #a6a6a6;
+         }
+         .samples-container {
+         margin-left: 20px;
+         overflow: hidden;
+         transition: all 0.3s ease;
+         max-height: 1000px;
+         opacity: 1;
+         }
+         .collapsed .samples-container {
+         max-height: 0;
+         opacity: 0;
+         margin: 0;
+         padding: 0;
+         }
+         .toggle-icon {
+         margin-right: 8px;
+         transition: transform 0.3s ease;
+         display: inline-block;
+         width: 10px;
+         text-align: center;
+         }
+         .collapsed .toggle-icon {
+         transform: rotate(-90deg);
+         }
+         .empty-message {
+         text-align: center;
+         padding: 10px;
+         color: #666;
+         font-style: italic;
+         }
+         @keyframes shake {
+         0%, 100% { transform: translateX(0); }
+         20%, 60% { transform: translateX(-5px); }
+         40%, 80% { transform: translateX(5px); }
+         }
+         .format-header {
+         display: flex;
+         align-items: center;
+         cursor: pointer;
+         padding: 8px 12px;
+         background: rgba(50,50,50,0.8);
+         border-radius: 4px;
+         margin-bottom: 5px;
+         user-select: none;
+         }
+         .format-title {
+         flex-grow: 1;
+         font-size: 16px;
+         font-weight: 600;
+         color: #a6a6a6;
+         }
+         .toggle-icon {
+         margin-right: 8px;
+         transition: transform 0.3s ease;
+         width: 10px;
+         text-align: center;
+         }
+         .collapsed .toggle-icon {
+         transform: rotate(-90deg);
+         }
+         .samples-container {
+         margin-left: 20px;
+         overflow: hidden;
+         transition: all 0.3s ease;
+         }
+         .collapsed + .samples-container {
+         display: none;
+         }
+         .icon {
+         width: 14px;
+         height: 14px;
+         fill: currentColor;
+         transition: fill 0.2s ease;
+         }
+         .edit-icon {
+         color: #a6a6a6;
+         }
+         .edit-icon:hover {
+         color: #03A64A;
+         }
+         .delete-icon {
+         color: #a6a6a6;
+         }
+         .delete-icon:hover {
+         color: #ff4444;
+         }
+         .sample-buttons button,
+         .format-buttons button {
+         background: transparent;
+         border: none;
+         padding: 2px;
+         cursor: pointer;
+         display: flex;
+         align-items: center;
+         justify-content: center;
+         }
+         .save-icon {
+         margin-right: 6px;
+         }
+         .save-button {
+         display: flex;
+         align-items: center;
+         justify-content: center;
+         }
+         .filename-input {
+         width: 100%;
+         padding: 10px;
+         margin: 10px 0;
+         background: rgba(40, 40, 40, 0.9);
+         color: #a6a6a6;
+         border: 1px solid #444;
+         border-radius: 4px;
+         }
+      </style>
+   </head>
+   <body>
+      <div id="auth-container" class="auth-container">
+         <h1>Редактор списка семплов</h1>
+         <input type="text" id="login" class="auth-input" placeholder="Логин">
+         <input type="password" id="password" class="auth-input" placeholder="Пароль">
+         <button id="login-button" class="auth-button">Войти</button>
+         <div id="auth-error" style="color: #ff4444; margin-top: 10px; display: none;">
+            Неверный логин или пароль
+         </div>
+      </div>
+      <div id="json-editor-container" class="json-editor-container">
+         <h1>Редактор списка семплов</h1>
+         <div class="editor-section">
+            <h2>Проект</h2>
+            <select id="formatSelect"></select>
+            <div class="input-row">
+               <input type="text" id="newFormat" placeholder="Имя проекта">
+               <button onclick="addFormat()">Добавить проект</button>
+            </div>
+         </div>
+         <div class="editor-section">
+            <h2>Семпл</h2>
+            <input type="text" id="path" placeholder="Путь">
+            <div class="input-row">
+               <input type="text" id="idSample" placeholder="Имя сэмпла">
+               <button onclick="addSample()">Добавить сэмпл</button>
+            </div>
+         </div>
+         <div class="editor-section">
+            <h2>Список</h2>
+            <div id="sampleList"></div>
+         </div>
+         <div class="action-panel">
+            <button class="primary" onclick="showSaveDialog()">Сохранить</button>
+            <input type="file" id="jsonFileInput" style="display: none;" onchange="loadLocalJSON(event)">
+            <button onclick="document.getElementById('jsonFileInput').click()">Загрузить</button>
+            <button onclick="logout()">Выйти</button>
+         </div>
+      </div>
+      <div id="alert-container"></div>
+      <script>
+         var jsonData = jsonData || { menuItems: [] };
+         var jsonFilePath = "";
+         const ADMIN_CREDENTIALS = { login: 'admin', password: 'admin' };
+         
+         function translit(text) {
+           const map = {
+             'а':'a','б':'b','в':'v','г':'g','д':'d','е':'e','ё':'e','ж':'zh','з':'z',
+             'и':'i','й':'y','к':'k','л':'l','м':'m','н':'n','о':'o','п':'p','р':'r',
+             'с':'s','т':'t','у':'u','ф':'f','х':'h','ц':'ts','ч':'ch','ш':'sh','щ':'sch',
+             'ъ':'','ы':'y','ь':'','э':'e','ю':'yu','я':'ya'
+           };
+           return text.toLowerCase().split('').map(ch => map[ch] ?? ch).join('');
+         }
+         
+         function showAlert(title, message, confirmText = 'OK', cancelText = null) {
+           return new Promise((resolve) => {
+             const alertContainer = document.getElementById('alert-container');
+             const alertBox = document.createElement('div');
+             alertBox.className = 'alert-overlay';
+             alertBox.innerHTML = `
+               <div class="alert-box">
+                 <h3 class="alert-title">${title}</h3>
+                 <div class="alert-message">${message}</div>
+                 <div class="alert-buttons">
+                   ${cancelText ? `<button class="alert-button cancel" onclick="closeAlert(false)">${cancelText}</button>` : ''}
+                   <button class="alert-button confirm" onclick="closeAlert(true)">${confirmText}</button>
+                 </div>
+               </div>
+             `;
+             alertContainer.appendChild(alertBox);
+             
+             window.closeAlert = (result) => {
+               alertContainer.removeChild(alertBox);
+               resolve(result);
+             };
+           });
+         }
+         
+         async function showEditSampleDialog(currentName, currentPath) {
+           return new Promise((resolve) => {
+             const alertContainer = document.getElementById('alert-container');
+             const alertBox = document.createElement('div');
+             alertBox.className = 'alert-overlay';
+             alertBox.innerHTML = `
+               <div class="alert-box edit-box">
+                 <h3 class="alert-title">Редактировать сэмпл</h3>
+                 <div class="alert-message">
+                   <label class="edit-label">Имя сэмпла:</label>
+                   <input type="text" id="editName" class="edit-input" value="${currentName}">
+                   <label class="edit-label">Путь:</label>
+                   <input type="text" id="editPath" class="edit-input" value="${currentPath}">
+                 </div>
+                 <div class="alert-buttons">
+                   <button class="alert-button cancel" onclick="closeEditDialog(false)">Отмена</button>
+                   <button class="alert-button confirm" onclick="closeEditDialog(true)">Сохранить</button>
+                 </div>
+               </div>
+             `;
+             alertContainer.appendChild(alertBox);
+             
+             window.closeEditDialog = (result) => {
+               if (result) {
+                 const newName = document.getElementById('editName').value.trim();
+                 const newPath = document.getElementById('editPath').value.trim();
+                 resolve({ confirmed: true, name: newName, path: newPath });
+               } else {
+                 resolve({ confirmed: false });
+               }
+               alertContainer.removeChild(alertBox);
+             };
+           });
+         }
+         
+         async function showEditFormatDialog(currentName) {
+           return new Promise((resolve) => {
+             const alertContainer = document.getElementById('alert-container');
+             const alertBox = document.createElement('div');
+             alertBox.className = 'alert-overlay';
+             alertBox.innerHTML = `
+               <div class="alert-box edit-box">
+                 <h3 class="alert-title">Редактировать проект</h3>
+                 <div class="alert-message">
+                   <label class="edit-label">Имя проекта:</label>
+                   <input type="text" id="editFormatName" class="edit-input" value="${currentName}">
+                 </div>
+                 <div class="alert-buttons">
+                   <button class="alert-button cancel" onclick="closeEditFormatDialog(false)">Отмена</button>
+                   <button class="alert-button confirm" onclick="closeEditFormatDialog(true)">Сохранить</button>
+                 </div>
+               </div>
+             `;
+             alertContainer.appendChild(alertBox);
+             
+             window.closeEditFormatDialog = (result) => {
+               if (result) {
+                 const newName = document.getElementById('editFormatName').value.trim();
+                 resolve({ confirmed: true, name: newName });
+               } else {
+                 resolve({ confirmed: false });
+               }
+               alertContainer.removeChild(alertBox);
+             };
+           });
+         }
+         
+         function highlightError(element) {
+           element.classList.add('input-error');
+           setTimeout(() => {
+             element.classList.remove('input-error');
+           }, 500);
+         }
+         
+         function authenticate() {
+           const login = document.getElementById('login').value.trim();
+           const password = document.getElementById('password').value.trim();
+           const errorElement = document.getElementById('auth-error');
+           
+           if (login === ADMIN_CREDENTIALS.login && password === ADMIN_CREDENTIALS.password) {
+             document.getElementById('auth-container').style.display = 'none';
+             document.getElementById('json-editor-container').style.display = 'flex';
+             updateFormatSelect();
+             renderSamples();
+           } else {
+             errorElement.style.display = 'block';
+             highlightError(document.getElementById('login'));
+             highlightError(document.getElementById('password'));
+           }
+         }
+         
+         function logout() {
+           document.getElementById('auth-container').style.display = 'block';
+           document.getElementById('json-editor-container').style.display = 'none';
+           document.getElementById('login').value = '';
+           document.getElementById('password').value = '';
+           document.getElementById('auth-error').style.display = 'none';
+         }
+         
+         function updateFormatSelect() {
+           var select = document.getElementById("formatSelect");
+           select.innerHTML = "";
+           jsonData.menuItems.forEach((item, index) => {
+             var option = document.createElement("option");
+             option.value = index;
+             option.textContent = item.idFormat;
+             select.appendChild(option);
+           });
+         }
+         
+         function toggleFormatCollapse(formatHeader) {
+           formatHeader.classList.toggle('collapsed');
+         }
+         
+         function renderSamples() {
+         var list = document.getElementById("sampleList");
+         list.innerHTML = "";
+         
+         if (jsonData.menuItems.length === 0) {
+         list.innerHTML = '<div class="empty-message">Нет проектов</div>';
+         return;
+         }
+         
+         // SVG иконки
+         const editIcon = `
+         <svg class="icon edit-icon" viewBox="0 0 24 24">
+         <path d="M3 17.25V21h3.75L17.81 9.94l-3.75-3.75L3 17.25zM20.71 7.04c.39-.39.39-1.02 0-1.41l-2.34-2.34c-.39-.39-1.02-.39-1.41 0l-1.83 1.83 3.75 3.75 1.83-1.83z"/>
+         </svg>
+         `;
+         
+         const deleteIcon = `
+         <svg class="icon delete-icon" viewBox="0 0 24 24">
+         <path d="M6 19c0 1.1.9 2 2 2h8c1.1 0 2-.9 2-2V7H6v12zM19 4h-3.5l-1-1h-5l-1 1H5v2h14V4z"/>
+         </svg>
+         `;
+         
+         jsonData.menuItems.forEach((format, i) => {
+         const formatContainer = document.createElement("div");
+         formatContainer.className = "format-container";
+         
+         const formatHeader = document.createElement("div");
+         formatHeader.className = "format-header";
+         formatHeader.innerHTML = `
+         <span class="toggle-icon">▼</span>
+         <span class="format-title">${format.idFormat}</span>
+         <div class="format-buttons">
+         <button title="Редактировать проект">${editIcon}</button>
+         <button class="danger" title="Удалить проект">${deleteIcon}</button>
+         </div>
+         `;
+         
+         formatHeader.addEventListener("click", function() {
+         formatContainer.classList.toggle("collapsed");
+         });
+         
+         // Обработчики для кнопок проекта
+         formatHeader.querySelector('.format-buttons button:first-child').addEventListener('click', (e) => {
+         e.stopPropagation();
+         editFormat(i);
+         });
+         
+         formatHeader.querySelector('.format-buttons button.danger').addEventListener('click', (e) => {
+         e.stopPropagation();
+         deleteFormat(i);
+         });
+         
+         const samplesContainer = document.createElement("div");
+         samplesContainer.className = "samples-container";
+         
+         if (format.item.length === 0) {
+         samplesContainer.innerHTML = '<div class="empty-message">Нет сэмплов</div>';
+         } else {
+         format.item.forEach((sample, j) => {
+         var div = document.createElement("div");
+         div.className = "sample";
+         div.draggable = true;
+         div.dataset.formatIndex = i;
+         div.dataset.sampleIndex = j;
+         div.innerHTML = `
+          <div class="sample-buttons">
+            <button title="Редактировать сэмпл">${editIcon}</button>
+            <button class="danger" title="Удалить сэмпл">${deleteIcon}</button>
+          </div>
+          <strong>${sample.idSample}</strong><br>
+          ${sample.path}
+         `;
+         
+         // Обработчики для кнопок сэмпла
+         div.querySelector('.sample-buttons button').addEventListener('click', () => editSample(i, j));
+         div.querySelector('.sample-buttons button.danger').addEventListener('click', () => deleteSample(i, j));
+         
+         div.addEventListener("dragstart", dragStart);
+         div.addEventListener("dragover", dragOver);
+         div.addEventListener("drop", drop);
+         samplesContainer.appendChild(div);
+         });
+         }
+         
+         formatContainer.appendChild(formatHeader);
+         formatContainer.appendChild(samplesContainer);
+         list.appendChild(formatContainer);
+         });
+         }
+         
+         function addFormat() {
+           var newFormat = document.getElementById("newFormat").value.trim();
+           if (newFormat) {
+             jsonData.menuItems.push({ idFormat: newFormat, item: [] });
+             updateFormatSelect();
+             document.getElementById("newFormat").value = "";
+             renderSamples();
+           } else {
+             showAlert('Ошибка', 'Имя проекта не может быть пустым!');
+             highlightError(document.getElementById("newFormat"));
+           }
+         }
+         
+         async function editFormat(formatIndex) {
+           const format = jsonData.menuItems[formatIndex];
+           const result = await showEditFormatDialog(format.idFormat);
+           
+           if (result.confirmed && result.name) {
+             format.idFormat = result.name;
+             updateFormatSelect();
+             renderSamples();
+           } else if (result.confirmed && !result.name) {
+             await showAlert('Ошибка', 'Имя проекта не может быть пустым!');
+           }
+         }
+         
+         async function deleteFormat(formatIndex) {
+           const result = await showAlert(
+             'Подтверждение', 
+             `Вы уверены, что хотите удалить проект "${jsonData.menuItems[formatIndex].idFormat}" и все его сэмплы?`, 
+             'Удалить', 
+             'Отмена'
+           );
+           
+           if (result) {
+             jsonData.menuItems.splice(formatIndex, 1);
+             updateFormatSelect();
+             renderSamples();
+           }
+         }
+         
+         async function addSample() {
+           var idSample = document.getElementById("idSample").value.trim();
+           var path = document.getElementById("path").value.trim();
+           var formatIndex = document.getElementById("formatSelect").value;
+         
+           if (!idSample || !path || formatIndex === "") {
+             let errorMessage = "Заполните все поля:";
+             if (!idSample) {
+               highlightError(document.getElementById("idSample"));
+               errorMessage += "\n- Имя сэмпла";
+             }
+             if (!path) {
+               highlightError(document.getElementById("path"));
+               errorMessage += "\n- Путь";
+             }
+             if (formatIndex === "") {
+               highlightError(document.getElementById("formatSelect"));
+               errorMessage += "\n- Выберите проект";
+             }
+             await showAlert('Ошибка', errorMessage);
+             return;
+           }
+         
+           let name = translit(idSample);
+           let baseName = name;
+           let count = 1;
+           while (jsonData.menuItems.some(f => f.item.some(s => s.name === name))) {
+             name = baseName + "_" + count++;
+           }
+           jsonData.menuItems[formatIndex].item.push({ name, idSample, path });
+           renderSamples();
+           document.getElementById("idSample").value = "";
+           document.getElementById("path").value = "";
+         }
+         
+         async function editSample(formatIndex, sampleIndex) {
+           const sample = jsonData.menuItems[formatIndex].item[sampleIndex];
+           
+           const result = await showEditSampleDialog(sample.idSample, sample.path);
+           
+           if (result.confirmed && result.name && result.path) {
+             sample.idSample = result.name;
+             sample.name = translit(result.name);
+             sample.path = result.path;
+             renderSamples();
+           } else if (result.confirmed && (!result.name || !result.path)) {
+             await showAlert('Ошибка', 'Имя сэмпла и путь не могут быть пустыми!');
+           }
+         }
+         
+         async function deleteSample(formatIndex, sampleIndex) {
+           const result = await showAlert(
+             'Подтверждение', 
+             'Вы уверены, что хотите удалить этот сэмпл?', 
+             'Удалить', 
+             'Отмена'
+           );
+           
+           if (result) {
+             jsonData.menuItems[formatIndex].item.splice(sampleIndex, 1);
+             renderSamples();
+           }
+         }
+         
+         let dragged;
+         function dragStart(e) {
+           dragged = e.target;
+           e.dataTransfer.setData('text/plain', null);
+         }
+         function dragOver(e) {
+           e.preventDefault();
+         }
+         function drop(e) {
+           e.preventDefault();
+           const srcFormatIndex = parseInt(dragged.dataset.formatIndex);
+           const srcSampleIndex = parseInt(dragged.dataset.sampleIndex);
+           const targetFormatIndex = parseInt(e.target.closest('.sample').dataset.formatIndex);
+           const targetSampleIndex = parseInt(e.target.closest('.sample').dataset.sampleIndex);
+           
+           const movedItem = jsonData.menuItems[srcFormatIndex].item.splice(srcSampleIndex, 1)[0];
+           jsonData.menuItems[targetFormatIndex].item.splice(targetSampleIndex, 0, movedItem);
+           renderSamples();
+         }
+         
+         async function showSaveDialog() {
+         const result = await showFilenameInputDialog();
+         if (result && result.filename) {
+         jsonFilePath = result.filename;
+         await downloadJSON();
+         }
+         }
+         
+         async function showFilenameInputDialog() {
+         return new Promise((resolve) => {
+         const alertContainer = document.getElementById('alert-container');
+         const alertBox = document.createElement('div');
+         alertBox.className = 'alert-overlay';
+         alertBox.innerHTML = `
+         <div class="alert-box">
+         <h3 class="alert-title">Сохранение файла</h3>
+         <div class="alert-message">
+          <p>Введите имя файла:</p>
+          <input type="text" id="filenameInput" class="filename-input" value="sampleData.json">
+         </div>
+         <div class="alert-buttons">
+          <button class="alert-button cancel" onclick="closeFilenameDialog(false)">Отмена</button>
+          <button class="alert-button confirm" onclick="closeFilenameDialog(true)">Сохранить</button>
+         </div>
+         </div>
+         `;
+         alertContainer.appendChild(alertBox);
+         
+         // Фокус на поле ввода при открытии
+         document.getElementById('filenameInput').focus();
+         
+         window.closeFilenameDialog = (result) => {
+         if (result) {
+         const filename = document.getElementById('filenameInput').value.trim();
+         if (filename) {
+          resolve({ confirmed: true, filename: filename });
+         } else {
+          resolve({ confirmed: false });
+         }
+         } else {
+         resolve({ confirmed: false });
+         }
+         alertContainer.removeChild(alertBox);
+         };
+         });
+         }
+         
+         async function downloadJSON() {
+         try {
+         var jsonStr = JSON.stringify(jsonData, null, 4);
+         const blob = new Blob([jsonStr], { type: 'application/json' });
+         const url = URL.createObjectURL(blob);
+         const a = document.createElement('a');
+         a.href = url;
+         a.download = jsonFilePath;
+         document.body.appendChild(a);
+         a.click();
+         document.body.removeChild(a);
+         URL.revokeObjectURL(url);
+         
+         await showAlert('Успех', `Файл "${jsonFilePath}" успешно сохранен`);
+         } catch (error) {
+         await showAlert('Ошибка', 'Не удалось сохранить файл: ' + error.message);
+         }
+         }
+         
+         function loadLocalJSON(event) {
+           var file = event.target.files[0];
+           if (file) {
+             jsonFilePath = file.path || "";
+             var reader = new FileReader();
+             reader.onload = function(e) {
+               try {
+                 jsonData = JSON.parse(e.target.result);
+                 updateFormatSelect();
+                 renderSamples();
+               } catch (error) {
+                 showAlert('Ошибка', 'Неверный формат JSON');
+               }
+             };
+             reader.readAsText(file);
+           }
+         }
+         
+         document.addEventListener("DOMContentLoaded", function() {
+           document.getElementById('login-button').addEventListener('click', authenticate);
+           document.getElementById('password').addEventListener('keypress', function(e) {
+             if (e.key === 'Enter') authenticate();
+           });
+         });
+      </script>
+   </body>
 </html>
