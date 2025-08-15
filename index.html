@@ -3,7 +3,7 @@
    <head>
       <meta charset="UTF-8">
       <meta name="viewport" content="width=device-width, initial-scale=1.0">
-      <title>Редактор списка путей семплов</title>
+      <title>Редактор списка семплов</title>
       <style>
          body {
          font-family: 'Montserrat', sans-serif;
@@ -81,7 +81,7 @@
          h1 {
          font-size: 24px;
          font-weight: 800;
-         border-bottom: 1px solid #444;
+         /*border-bottom: 1px solid #444;*/
          padding-bottom: 10px;
          }
          h2 {
@@ -385,7 +385,7 @@
             <h2>Проект</h2>
             <select id="formatSelect"></select>
             <div class="input-row">
-               <input type="text" id="newFormat" placeholder="Имя проекта">
+               <input type="text" id="newFormat" placeholder="Имя проекта (например: Р1, Р24, М24)">
                <button onclick="addFormat()">Добавить проект</button>
             </div>
          </div>
@@ -393,7 +393,7 @@
             <h2>Семпл</h2>
             <input type="text" id="path" placeholder="Путь">
             <div class="input-row">
-               <input type="text" id="idSample" placeholder="Имя сэмпла">
+               <input type="text" id="idSample" placeholder="Имя сэмпла (например: Новости, Экономика, Погода)">
                <button onclick="addSample()">Добавить сэмпл</button>
             </div>
          </div>
